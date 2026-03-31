@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent on Demand - Travel Information</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .form-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        @media (min-width: 768px) {
+            .form-container {
+                padding: 2rem;
+            }
+        }
+        @media (min-width: 1200px) {
+            .form-container {
+                max-width: 1140px;
+            }
+        }
+        .header-image {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+            border-radius: 0.5rem;
+        }
+        .disabled-option {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        #phoneNumberField {
+            display: none;
+        }
+        .btn-primary:disabled {
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container form-container mt-3 mt-md-5">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                
+                <!-- Image -->
+                <div class="text-center mb-4 mb-md-5">
+                    <img 
+                        src="https://storage.googleapis.com/gcp-wxcctoolkit-nprd-41927.appspot.com/assets/DwOVM0HYZPOjxemCLo1foEsxRmm1/AOD.jpg"
+                        alt="Agent on Demand Header" 
+                        class="header-image">
+                </div>
+
+                <!-- Form Card -->
+                <div class="card p-3 p-md-4 shadow">
+                    <h2 class="card-title text-center mb-4">Travel Information</h2>
+                    
+                    <form id="travelForm">
+                        
+                        <!-- Final Destination -->
+                        <div class="mb-3">
+                            <label for="finalDestination" class="form-label">Final Destination</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="finalDestination"
+                                name="finalDestination"
+                                placeholder="Enter your final destination"
+                                required>
+                        </div>
+
+                        <!-- Last Name -->
+                        <div class="mb-3">
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="lastName"
+                                name="lastName"
+                                placeholder="Enter your last name"
+                                required>
+                        </div>
+
+                        <!-- Help Category Dropdown -->
+                        <div class="mb-3">
+                            <label for="helpCategory" class="form-label">What do you need help with?</label>
+                            <select
+                                class="form-select"
+                                id="helpCategory"
+                                name="helpCategory"
+                                required>
+                                <option value="">Select an option...</option>
+                                <option value="changeFlight">Change my flight</option>
+                                <option value="changeSeat">Change my seat</option>
+                                <option value="Baggage">Baggage Issues</option>
+                                <option value="somethingElse">Something Else</option>
+                            </select>
+                        </div>
+
+                        <!-- Date of Birth -->
+                        <div class="mb-4">
+                            <label for="dateOfBirth" class="form-label">Date of Birth</label>
+                            <input
+                                type="date"
+                                class="form-control"
+                                id="dateOfBirth"
+                                name="dateOfBirth"
+                                required>
+                        </div>
+
+                        <!-- Contact Method Radio Buttons -->
+                        <div class="mb-4">
+                            <label class="form-label">How should we contact you?</label>
+                            <div class="mt-2">
+                                <div class="form-check mb-2">
+                                    <input
+                                        class="form-check-input"
+                                        type="radio"
+                                        name="contactMethod"
+                                        id="phone"
+                                        value="phone"
+                                        required>
+                                    <label class="form-check-label" for="phone">
+                                        Phone
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2 disabled-option">
+                                    <input
+                                        class="form-check-input"
+                                        type="radio"
+                                        name="contactMethod"
+                                        id="video"
+                                        value="video"
+                                        disabled>
+                                    <label class="form-check-label text-muted" for="video">
+                                        Video
+                                        <small class="ms-2 text-danger">(wait time greater than 10 minutes)</small>
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2 disabled-option">
+                                    <input
+                                        class="form-check-input"
+                                        type="radio"
+                                        name="contactMethod"
+                                        id="text"
+                                        value="text"
+                                        disabled>
+                                    <label class="form-check-label text-muted" for="text">
+                                        Text
+                                        <small class="ms-2 text-danger">(wait time greater than 10 minutes)</small>
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input
+                                        class="form-check-input"
+                                        type="radio"
+                                        name="contactMethod"
+                                        id="appleBusiness"
+                                        value="appleBusiness"
+                                        required>
+                                    <label class="form-check-label" for="appleBusiness">
+                                        Apple Messages for Business
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Phone Number (Conditional) -->
+                        <div class="mb-4" id="phoneNumberField">
+                            <label for="phoneNumber" class="form-label">Phone Number</label>
+                            <input
+                                type="tel"
+                                class="form-control"
+                                id="phoneNumber"
+                                name="phoneNumber"
+                                placeholder="18472695644"
+                                pattern="^1[0-9]{10}$"
+                                maxlength="11"
+                                inputmode="numeric">
+                            <div class="form-text">
+                                Enter 11 digits starting with 1 (e.g., 18472695644)
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button 
+                                type="submit" 
+                                class="btn btn-primary btn-lg"
+                                id="submitBtn">
+                                Submit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Get form elements
+        const form = document.getElementById('travelForm');
+        const phoneRadio = document.getElementById('phone');
+        const textRadio = document.getElementById('text');
+        const appleBusinessRadio = document.getElementById('appleBusiness');
+        const phoneNumberField = document.getElementById('phoneNumberField');
+        const phoneNumberInput = document.getElementById('phoneNumber');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        // Show/hide phone number field based on contact method
+        const contactMethodRadios = document.querySelectorAll('input[name="contactMethod"]');
+        contactMethodRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'phone' || this.value === 'text') {
+                    phoneNumberField.style.display = 'block';
+                    phoneNumberInput.required = true;
+                } else {
+                    phoneNumberField.style.display = 'none';
+                    phoneNumberInput.required = false;
+                    phoneNumberInput.value = '';
+                }
+            });
+        });
+        
+        // Format phone number input
+        phoneNumberInput.addEventListener('input', function(e) {
+            // Remove all non-digits
+            let value = e.target.value.replace(/\D/g, '');
+            
+            // Limit to 11 digits
+            if (value.length > 11) {
+                value = value.slice(0, 11);
+            }
+            
+            e.target.value = value;
+        });
+        
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const formData = {
+                finalDestination: document.getElementById('finalDestination').value,
+                lastName: document.getElementById('lastName').value,
+                helpCategory: document.getElementById('helpCategory').value,
+                dateOfBirth: document.getElementById('dateOfBirth').value,
+                contactMethod: document.querySelector('input[name="contactMethod"]:checked').value,
+                phoneNumber: phoneNumberInput.value
+            };
+            
+            // Validate phone number if phone or text is selected
+            if ((formData.contactMethod === 'phone' || formData.contactMethod === 'text') && formData.phoneNumber) {
+                if (formData.phoneNumber.length !== 11 || !formData.phoneNumber.startsWith('1')) {
+                    alert('Agent on Demand says: Please enter a valid US phone number in format: 18472695644 (11 digits starting with 1)');
+                    return;
+                }
+            }
+            
+            // Handle Apple Messages for Business
+            if (formData.contactMethod === 'appleBusiness') {
+                try {
+                    // Determine Apple Messages URL based on help category
+                    const messagesUrlMapping = {
+                        'changeFlight': 'https://bcrw.apple.com/messages/api/messageprofiles/redirecthelper?service=iMessage&recipient=urn:biz:6f6ab203-6ead-450a-bcae-24662cb6aae0&body=Change%20Flight',
+                        'changeSeat': 'https://bcrw.apple.com/messages/api/messageprofiles/redirecthelper?service=iMessage&recipient=urn:biz:6f6ab203-6ead-450a-bcae-24662cb6aae0&body=Change%20Seat',
+                        'Baggage': 'https://bcrw.apple.com/messages/api/messageprofiles/redirecthelper?service=iMessage&recipient=urn:biz:6f6ab203-6ead-450a-bcae-24662cb6aae0&body=Baggage%20Issues',
+                        'somethingElse': 'https://bcrw.apple.com/messages/api/messageprofiles/redirecthelper?service=iMessage&recipient=urn:biz:6f6ab203-6ead-450a-bcae-24662cb6aae0&body=Something%20Else'
+                    };
+                    
+                    const messagesUrl = messagesUrlMapping[formData.helpCategory];
+                    
+                    if (!messagesUrl) {
+                        alert('Agent on Demand says: Invalid help category selected.');
+                        return;
+                    }
+                    
+                    // Open Apple Messages app
+                    window.open(messagesUrl, '_blank');
+                    
+                    alert('Agent on Demand says: Opening Apple Messages for Business...');
+                    
+                    // Reset form
+                    form.reset();
+                    phoneNumberField.style.display = 'none';
+                    return;
+                } catch (error) {
+                    console.error('Error opening Apple Messages:', error);
+                    alert('Agent on Demand says: There was an error opening Apple Messages. Please try again.');
+                    return;
+                }
+            }
+            
+            // Handle webhook submission for phone/video/text
+            const webhookUrl = 'https://hooks.us.webexconnect.io/events/1V5WO20HJQ';
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            try {
+                // Prepare data for webhook
+                const webhookData = {
+                    finalDestination: formData.finalDestination,
+                    lastName: formData.lastName,
+                    helpCategory: formData.helpCategory,
+                    dateOfBirth: formData.dateOfBirth,
+                    contactMethod: formData.contactMethod,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Include phone number if phone or text is selected
+                if (formData.contactMethod === 'phone' || formData.contactMethod === 'text') {
+                    webhookData.phoneNumber = formData.phoneNumber;
+                }
+                
+                // Send data to webhook
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(webhookData)
+                });
+                
+                if (response.ok) {
+                    alert('Agent on Demand says: Form submitted successfully!');
+                    // Reset form
+                    form.reset();
+                    phoneNumberField.style.display = 'none';
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('Agent on Demand says: There was an error submitting the form. Please try again.');
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit';
+            }
+        });
+    </script>
+</body>
+</html>
