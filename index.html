@@ -249,26 +249,20 @@
         
         // Format seconds into human-readable time
         function formatWaitTime(seconds) {
-            if (seconds === null || seconds === undefined) {
-                return 'N/A';
+            if (seconds === null || seconds === undefined || seconds === 0) {
+                return '0 mins';
             }
             
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
+            // Round up to the nearest minute
+            const mins = Math.ceil(seconds / 60);
             
-            if (mins === 0) {
-                return `${secs} sec${secs !== 1 ? 's' : ''}`;
-            } else if (secs === 0) {
-                return `${mins} min${mins !== 1 ? 's' : ''}`;
-            } else {
-                return `${mins} min${mins !== 1 ? 's' : ''} ${secs} sec${secs !== 1 ? 's' : ''}`;
-            }
+            return `${mins} min${mins !== 1 ? 's' : ''}`;
         }
         
         // Get CSS class based on wait time
         function getWaitTimeClass(seconds) {
-            if (seconds === null || seconds === undefined) {
-                return 'ewt-loading';
+            if (seconds === null || seconds === undefined || seconds === 0) {
+                return 'ewt-low';
             }
             if (seconds < 120) {  // Less than 2 minutes
                 return 'ewt-low';
@@ -299,11 +293,22 @@
                 
                 const data = await response.json();
                 
-                // The API returns EWT in seconds
-                return data.estimatedWaitTime || 0;
+                // The API returns EWT in milliseconds, convert to seconds
+                const milliseconds = data.estimatedWaitTime;
+                
+                // If no data, return 0
+                if (milliseconds === null || milliseconds === undefined) {
+                    return 0;
+                }
+                
+                // Convert milliseconds to seconds
+                const seconds = Math.round(milliseconds / 1000);
+                
+                return seconds;
             } catch (error) {
                 console.error(`Error fetching EWT for queue ${queueId}:`, error);
-                return null;
+                // Return 0 instead of null on error
+                return 0;
             }
         }
         
@@ -316,14 +321,9 @@
             badge.classList.remove('ewt-loading', 'ewt-low', 'ewt-medium', 'ewt-high');
             
             // Add appropriate class and update text
-            if (waitTimeSeconds === null) {
-                badge.classList.add('ewt-loading');
-                badge.textContent = 'N/A';
-            } else {
-                const cssClass = getWaitTimeClass(waitTimeSeconds);
-                badge.classList.add(cssClass);
-                badge.textContent = formatWaitTime(waitTimeSeconds);
-            }
+            const cssClass = getWaitTimeClass(waitTimeSeconds);
+            badge.classList.add(cssClass);
+            badge.textContent = formatWaitTime(waitTimeSeconds);
         }
         
         // Fetch and update all EWT values
@@ -347,11 +347,11 @@
             const videoRadio = document.getElementById('video');
             const textRadio = document.getElementById('text');
             
-            if (videoEWT !== null && videoEWT > 600) {
+            if (videoEWT > 600) {
                 videoRadio.disabled = true;
             }
             
-            if (textEWT !== null && textEWT > 600) {
+            if (textEWT > 600) {
                 textRadio.disabled = true;
             }
         }
