@@ -283,7 +283,7 @@
         async function fetchEWT(queueId) {
             try {
                 const response = await fetch(
-                    `${API_CONFIG.baseUrl}/ewt?lookbackMinutes=15&queueId=${queueId}&orgId=${API_CONFIG.orgId}`,
+                    `${API_CONFIG.baseUrl}/ewt?lookbackMinutes=15&queueId=${queueId}&orgId=${API_CONFIG.orgId}&minValidSamples=1`,
                     {
                         method: 'GET',
                         headers: {
