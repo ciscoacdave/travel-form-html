@@ -43,6 +43,27 @@
         .btn-primary:disabled {
             cursor: not-allowed;
         }
+        .ewt-badge {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            margin-left: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .ewt-loading {
+            color: #6c757d;
+        }
+        .ewt-low {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        .ewt-medium {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+        .ewt-high {
+            background-color: #f8d7da;
+            color: #842029;
+        }
     </style>
 </head>
 <body>
@@ -129,6 +150,7 @@
                                         required>
                                     <label class="form-check-label" for="phone">
                                         Phone
+                                        <span class="ewt-badge ewt-loading" id="ewtPhone">Loading...</span>
                                     </label>
                                 </div>
                                 <div class="form-check mb-2 disabled-option">
@@ -141,7 +163,7 @@
                                         disabled>
                                     <label class="form-check-label text-muted" for="video">
                                         Video
-                                        <small class="ms-2 text-danger">(wait time greater than 10 minutes)</small>
+                                        <span class="ewt-badge ewt-loading" id="ewtVideo">Loading...</span>
                                     </label>
                                 </div>
                                 <div class="form-check mb-2 disabled-option">
@@ -154,7 +176,7 @@
                                         disabled>
                                     <label class="form-check-label text-muted" for="text">
                                         Text
-                                        <small class="ms-2 text-danger">(wait time greater than 10 minutes)</small>
+                                        <span class="ewt-badge ewt-loading" id="ewtText">Loading...</span>
                                     </label>
                                 </div>
                                 <div class="form-check mb-2">
@@ -167,6 +189,7 @@
                                         required>
                                     <label class="form-check-label" for="appleBusiness">
                                         Apple Messages for Business
+                                        <span class="ewt-badge ewt-loading" id="ewtApple">Loading...</span>
                                     </label>
                                 </div>
                             </div>
@@ -208,6 +231,141 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // ===== CONFIGURATION =====
+        // Replace these with your actual values
+        const API_CONFIG = {
+            baseUrl: 'https://api.wxcc-us1.cisco.com/v1',  // Change region if needed (us1, eu1, eu2, anz1)
+            accessToken: 'NDQzZTg1YTctYjQ4YS00ZTJjLTk0NzgtNzM2MGM1YWMzYjU1OWU3ZmVkOWEtZWEy_PF84_000a1aaf-cc6f-4481-9e9a-660ad7f4b9d0',  // Get from Webex Contact Center
+            queueIds: {
+                phone: 'd60c2ae4-9196-442c-860e-c132a1dbe1c3',
+                video: 'd1fa6df6-a8f6-4a0e-bf3a-fd9e9a623b4a',
+                text: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b',
+                appleBusiness: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b'
+            }
+        };
+        
+        // ===== EWT FUNCTIONS =====
+        
+        // Format seconds into human-readable time
+        function formatWaitTime(seconds) {
+            if (seconds === null || seconds === undefined) {
+                return 'N/A';
+            }
+            
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            
+            if (mins === 0) {
+                return `${secs} sec${secs !== 1 ? 's' : ''}`;
+            } else if (secs === 0) {
+                return `${mins} min${mins !== 1 ? 's' : ''}`;
+            } else {
+                return `${mins} min${mins !== 1 ? 's' : ''} ${secs} sec${secs !== 1 ? 's' : ''}`;
+            }
+        }
+        
+        // Get CSS class based on wait time
+        function getWaitTimeClass(seconds) {
+            if (seconds === null || seconds === undefined) {
+                return 'ewt-loading';
+            }
+            if (seconds < 120) {  // Less than 2 minutes
+                return 'ewt-low';
+            } else if (seconds < 600) {  // Less than 10 minutes
+                return 'ewt-medium';
+            } else {  // 10+ minutes
+                return 'ewt-high';
+            }
+        }
+        
+        // Fetch EWT for a specific queue
+        async function fetchEWT(queueId) {
+            try {
+                const response = await fetch(
+                    `${API_CONFIG.baseUrl}/organization/${API_CONFIG.orgId}/estimated-wait-time?queueId=${queueId}`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${API_CONFIG.accessToken}`,
+                            'Accept': 'application/json'
+                        }
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // The API returns EWT in seconds
+                return data.estimatedWaitTime || 0;
+            } catch (error) {
+                console.error(`Error fetching EWT for queue ${queueId}:`, error);
+                return null;
+            }
+        }
+        
+        // Update EWT badge for a contact method
+        function updateEWTBadge(elementId, waitTimeSeconds) {
+            const badge = document.getElementById(elementId);
+            if (!badge) return;
+            
+            // Remove all EWT classes
+            badge.classList.remove('ewt-loading', 'ewt-low', 'ewt-medium', 'ewt-high');
+            
+            // Add appropriate class and update text
+            if (waitTimeSeconds === null) {
+                badge.classList.add('ewt-loading');
+                badge.textContent = 'N/A';
+            } else {
+                const cssClass = getWaitTimeClass(waitTimeSeconds);
+                badge.classList.add(cssClass);
+                badge.textContent = formatWaitTime(waitTimeSeconds);
+            }
+        }
+        
+        // Fetch and update all EWT values
+        async function updateAllEWT() {
+            // Fetch all EWT values in parallel
+            const [phoneEWT, videoEWT, textEWT, appleEWT] = await Promise.all([
+                fetchEWT(API_CONFIG.queueIds.phone),
+                fetchEWT(API_CONFIG.queueIds.video),
+                fetchEWT(API_CONFIG.queueIds.text),
+                fetchEWT(API_CONFIG.queueIds.appleBusiness)
+            ]);
+            
+            // Update all badges
+            updateEWTBadge('ewtPhone', phoneEWT);
+            updateEWTBadge('ewtVideo', videoEWT);
+            updateEWTBadge('ewtText', textEWT);
+            updateEWTBadge('ewtApple', appleEWT);
+            
+            // Optionally disable/enable options based on wait time
+            // For example, disable if wait time > 10 minutes (600 seconds)
+            const videoRadio = document.getElementById('video');
+            const textRadio = document.getElementById('text');
+            
+            if (videoEWT !== null && videoEWT > 600) {
+                videoRadio.disabled = true;
+            }
+            
+            if (textEWT !== null && textEWT > 600) {
+                textRadio.disabled = true;
+            }
+        }
+        
+        // Initialize EWT on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fetch EWT immediately
+            updateAllEWT();
+            
+            // Refresh EWT every 30 seconds
+            setInterval(updateAllEWT, 30000);
+        });
+        
+        // ===== FORM HANDLING =====
+        
         // Get form elements
         const form = document.getElementById('travelForm');
         const phoneRadio = document.getElementById('phone');
