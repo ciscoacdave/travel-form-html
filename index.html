@@ -237,6 +237,7 @@
         .radio-option.disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            pointer-events: none;
         }
 
         .radio-custom {
@@ -455,7 +456,7 @@
                         </div>
                     </label>
 
-                    <label class="radio-option disabled" data-value="video">
+                    <label class="radio-option" data-value="video" onclick="selectOption(this)">
                         <div class="radio-custom"><div class="radio-dot"></div></div>
                         <div class="radio-icon">📹</div>
                         <div class="radio-content">
@@ -467,7 +468,7 @@
                         </div>
                     </label>
 
-                    <label class="radio-option disabled" data-value="text">
+                    <label class="radio-option" data-value="text" onclick="selectOption(this)">
                         <div class="radio-custom"><div class="radio-dot"></div></div>
                         <div class="radio-icon">💬</div>
                         <div class="radio-content">
@@ -602,12 +603,7 @@
             updateEWTBadge('ewtText', textEWT);
             updateEWTBadge('ewtApple', appleEWT);
 
-            // Keep video and text disabled if wait > 10 mins
-            const videoOption = document.querySelector('[data-value="video"]');
-            const textOption = document.querySelector('[data-value="text"]');
-
-            if (videoEWT > 600) videoOption.classList.add('disabled');
-            if (textEWT > 600) textOption.classList.add('disabled');
+            // All options are now always enabled
         }
 
         // Initialize EWT on page load
@@ -621,8 +617,6 @@
         let selectedMethod = null;
 
         function selectOption(el) {
-            if (el.classList.contains('disabled')) return;
-
             document.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
             el.classList.add('selected');
             selectedMethod = el.getAttribute('data-value');
@@ -738,7 +732,7 @@
                     timestamp: new Date().toISOString()
                 };
 
-                // Include phone number for callme and text
+                // Include phone number for callme and text (not video)
                 if (selectedMethod === 'callme' || selectedMethod === 'text') {
                     webhookData.phoneNumber = phoneNumber;
                 }
