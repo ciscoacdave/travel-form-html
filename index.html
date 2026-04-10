@@ -681,6 +681,17 @@
                 return;
             }
 
+            // Handle Video - redirect to video chat
+            if (selectedMethod === 'video') {
+                const params = new URLSearchParams();
+                params.set('name', `${finalDestination} - ${lastName}`);
+                params.set('destination', finalDestination);
+                
+                const targetUrl = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/?' + params.toString();
+                window.location.href = targetUrl;
+                return;
+            }
+
             // Handle Apple Messages for Business
             if (selectedMethod === 'appleBusiness') {
                 try {
@@ -717,7 +728,7 @@
                 }
             }
 
-            // Handle webhook submission for callme, video, and text
+            // Handle webhook submission for callme and text only
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
@@ -732,7 +743,7 @@
                     timestamp: new Date().toISOString()
                 };
 
-                // Include phone number for callme and text (not video)
+                // Include phone number for callme and text
                 if (selectedMethod === 'callme' || selectedMethod === 'text') {
                     webhookData.phoneNumber = phoneNumber;
                 }
