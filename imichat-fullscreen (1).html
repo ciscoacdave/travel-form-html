@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Chat</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { height: 100vh; width: 100vw; overflow: hidden; background: #f0f4f8;
+           font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+    #fullscreen-chat {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      border: none; display: none; z-index: 99999;
+    }
+
+    #loading-screen {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #f0f4f8; z-index: 99998; transition: opacity 0.4s ease;
+    }
+    #loading-screen.fade-out { opacity: 0; pointer-events: none; }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #e2e8f0; border-top-color: #005cde;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-bottom: 1.25rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { font-size: 0.95rem; color: #56627c; font-weight: 500; }
+    .loading-sub  { font-size: 0.8rem; color: #99a0b0; margin-top: 0.4rem; }
+
+    #error-screen {
+      position: fixed; inset: 0; display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #f0f4f8; z-index: 99997;
+    }
+    .error-icon  { font-size: 2.5rem; margin-bottom: 1rem; }
+    .error-title { font-size: 1rem; font-weight: 600; color: #56627c; margin-bottom: 0.5rem; }
+    .error-msg   { font-size: 0.8rem; color: #99a0b0; max-width: 320px; text-align: center; margin-bottom: 1.5rem; }
+    .retry-btn   {
+      padding: 0.6rem 1.5rem; background: #005cde; color: white;
+      border: none; border-radius: 6px; font-size: 0.875rem;
+      cursor: pointer; font-family: inherit;
+    }
+    .retry-btn:hover { background: #0049b5; }
+
+    #debug-log {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.85); color: #48bb78;
+      font-family: monospace; font-size: 11px;
+      padding: 8px 12px; max-height: 140px; overflow-y: auto;
+      z-index: 999999; display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-text">Authenticating...</div>
+    <div class="loading-sub" id="loading-sub">Contacting chat service</div>
+  </div>
+
+  <div id="error-screen">
+    <div class="error-icon">💬</div>
+    <div class="error-title">Chat Unavailable</div>
+    <div class="error-msg" id="error-msg">Unable to connect to the chat service. Please try again.</div>
+    <button class="retry-btn" onclick="init()">Try Again</button>
+  </div>
+
+  <iframe id="fullscreen-chat" allow="microphone; camera"></iframe>
+
+  <!-- Debug log — press D to toggle -->
+  <div id="debug-log"></div>
+
+  <script>
+    var CLIENT_ID     = '7e9e58e2-1de5-47c4-b2b7-98d8e45b2fea';
+    var CLIENT_SECRET = '62A7138C-F6AA-4B69-8FC5-317D0E8AEB8F';
+    var DATA_BIND     = '62A7138C-F6AA-4B69-8FC5-317D0E8AEB8F';
+    var DATA_GUID     = 'd7fd391b-e954-4075-ba96-81714ebfb1ff';
+    var TOKEN_URL     = 'https://chat-widget.imi.chat/oauth/token';
+
+    // Candidate chat URLs to try after getting a token
+    // We'll try each in order and use whichever loads
+    var CHAT_URL_TEMPLATES = [
+      'https://chat-widget.imi.chat/widget?token={token}&bind={bind}',
+      'https://chat-widget.imi.chat/?token={token}&bind={bind}',
+      'https://chat-widget.imi.chat/chat?token={token}&org={bind}',
+      'https://media.imi.chat/widget/?token={token}&bind={bind}',
+      'https://chat-widget.imi.chat/widget/{bind}?token={token}',
+    ];
+
+    function log(msg) {
+      var el = document.getElementById('debug-log');
+      var line = document.createElement('div');
+      line.textContent = '[' + new Date().toISOString().substr(11,8) + '] ' + msg;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+      console.log(msg);
+    }
+
+    function setLoadingText(text, sub) {
+      document.getElementById('loading-text').textContent = text;
+      if (sub) document.getElementById('loading-sub').textContent = sub;
+    }
+
+    function showError(msg) {
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('error-msg').textContent = msg;
+      document.getElementById('error-screen').style.display = 'flex';
+    }
+
+    function showChat(url) {
+      log('Loading chat URL: ' + url);
+      var frame = document.getElementById('fullscreen-chat');
+      frame.src = url;
+      frame.style.display = 'block';
+      frame.addEventListener('load', function() {
+        var ls = document.getElementById('loading-screen');
+        ls.classList.add('fade-out');
+        setTimeout(function() { ls.style.display = 'none'; }, 400);
+      });
+    }
+
+    // Also run the original widget loader as a parallel track —
+    // MutationObserver watches for any iframe it injects
+    function runWidgetLoader(token) {
+      var observer = new MutationObserver(function(mutations) {
+        for (var m = 0; m < mutations.length; m++) {
+          var nodes = mutations[m].addedNodes;
+          for (var n = 0; n < nodes.length; n++) {
+            var node = nodes[n];
+            if (node.tagName === 'IFRAME' && node.id !== 'fullscreen-chat') {
+              handleInjectedIframe(node); return;
+            }
+            if (node.querySelectorAll) {
+              var frames = node.querySelectorAll('iframe:not(#fullscreen-chat)');
+              if (frames.length > 0) { handleInjectedIframe(frames[0]); return; }
+            }
+          }
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      var div = document.getElementById('divicw');
+      var s = document.createElement('script');
+      s.src = 'https://media.imi.chat/widget/js/imichatinit.js?t=' + new Date().toISOString();
+      div.insertAdjacentElement('afterend', s);
+      s.addEventListener('load', function() {
+        log('Widget init script loaded');
+        setLoadingText('Loading chat...', 'Almost there');
+      });
+      s.addEventListener('error', function() {
+        log('Widget init script failed to load');
+        observer.disconnect();
+        tryTokenUrl(token);
+      });
+    }
+
+    function handleInjectedIframe(iframe) {
+      log('Widget injected an iframe');
+      iframe.style.cssText = 'display:none!important;';
+      var src = iframe.src;
+      if (src && src !== 'about:blank') {
+        log('Got iframe src: ' + src);
+        showChat(src);
+      } else {
+        var w = setInterval(function() {
+          if (iframe.src && iframe.src !== 'about:blank') {
+            clearInterval(w);
+            log('Got deferred iframe src: ' + iframe.src);
+            showChat(iframe.src);
+          }
+        }, 100);
+      }
+    }
+
+    // Fallback: try building the URL from the token directly
+    function tryTokenUrl(token) {
+      log('Trying direct URL construction with token');
+      setLoadingText('Loading chat...', 'Almost there');
+      var url = CHAT_URL_TEMPLATES[0]
+        .replace('{token}', encodeURIComponent(token))
+        .replace('{bind}', encodeURIComponent(DATA_BIND));
+      showChat(url);
+    }
+
+    async function init() {
+      // Reset UI
+      document.getElementById('error-screen').style.display = 'none';
+      document.getElementById('loading-screen').style.display = 'flex';
+      document.getElementById('fullscreen-chat').style.display = 'none';
+      setLoadingText('Authenticating...', 'Contacting chat service');
+
+      var basicAuth = btoa(CLIENT_ID + ':' + CLIENT_SECRET);
+      log('Requesting OAuth token...');
+
+      try {
+        var resp = await fetch(TOKEN_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + basicAuth,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: 'grant_type=client_credentials'
+        });
+
+        log('Token response status: ' + resp.status);
+
+        if (!resp.ok) {
+          var body = await resp.text();
+          log('Token error body: ' + body);
+          // Even if token call fails, try the widget loader — it may succeed from this origin
+          log('Falling back to widget loader...');
+          setLoadingText('Loading chat...', 'Starting widget');
+          runWidgetLoader(null);
+          return;
+        }
+
+        var data = await resp.json();
+        log('Token received: ' + JSON.stringify(Object.keys(data)));
+
+        var token = data.access_token || data.token || data.id_token;
+        if (!token) {
+          log('No token in response, trying widget loader');
+          runWidgetLoader(null);
+          return;
+        }
+
+        log('Got access token, starting widget loader');
+        setLoadingText('Connecting...', 'Starting chat session');
+        runWidgetLoader(token);
+
+      } catch(err) {
+        log('Fetch error: ' + err.message);
+        // CORS may block us — try widget loader anyway
+        log('CORS likely blocked fetch, trying widget loader...');
+        setLoadingText('Loading chat...', 'Starting widget');
+        runWidgetLoader(null);
+      }
+    }
+
+    // Toggle debug log with D key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'd' || e.key === 'D') {
+        var el = document.getElementById('debug-log');
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      }
+    });
+
+    init();
+  </script>
+
+  <!-- imi.chat anchor div -->
+  <div id="divicw"
+    data-bind="62A7138C-F6AA-4B69-8FC5-317D0E8AEB8F"
+    data-org=""
+    data-guid="d7fd391b-e954-4075-ba96-81714ebfb1ff"
+    style="display:none;">
+  </div>
+
+</body>
+</html>
