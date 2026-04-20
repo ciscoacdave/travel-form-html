@@ -51,7 +51,7 @@
       position: fixed; bottom: 0; left: 0; right: 0;
       background: rgba(0,0,0,0.85); color: #48bb78;
       font-family: monospace; font-size: 11px;
-      padding: 8px 12px; max-height: 140px; overflow-y: auto;
+      padding: 8px 12px; max-height: 180px; overflow-y: auto;
       z-index: 999999; display: none;
     }
   </style>
@@ -67,14 +67,13 @@
   <div id="error-screen">
     <div class="error-icon">💬</div>
     <div class="error-title">Chat Unavailable</div>
-    <div class="error-msg" id="error-msg">Unable to connect to the chat service. Please try again.</div>
+    <div class="error-msg" id="error-msg">Unable to connect to the chat service.</div>
     <button class="retry-btn" onclick="init()">Try Again</button>
   </div>
 
   <iframe id="fullscreen-chat" allow="microphone; camera"></iframe>
   <div id="debug-log"></div>
 
-  <!-- imi.chat anchor — hidden, needed for widget loader fallback -->
   <div id="divicw"
     data-bind="62A7138C-F6AA-4B69-8FC5-317D0E8AEB8F"
     data-org=""
@@ -83,12 +82,11 @@
   </div>
 
   <script>
-    // Credentials decoded from working cURL
     var CLIENT_ID     = 'ee72e71b-a79a-4f51-83d7-097aca89d306';
     var CLIENT_SECRET = '62A7138C-F6AA-4B69-8FC5-317D0E8AEB8F';
-    var DATA_BIND     = '62A7138C-F6AA-4B69-8FC5-317D0E8AEB8F';
     var TOKEN_URL     = 'https://chat-widget.imi.chat/oauth/token';
     var CLIENT_HOST   = window.location.hostname;
+    var chatLaunched  = false; // guard so we only launch once
 
     function log(msg) {
       var el = document.getElementById('debug-log');
@@ -111,7 +109,9 @@
     }
 
     function showChat(url) {
-      log('Loading chat URL: ' + url);
+      if (chatLaunched) { log('showChat called again, ignoring: ' + url); return; }
+      chatLaunched = true;
+      log('Launching fullscreen chat: ' + url);
       var frame = document.getElementById('fullscreen-chat');
       frame.src = url;
       frame.style.display = 'block';
@@ -122,58 +122,113 @@
       });
     }
 
-    // Watch DOM for iframe injected by widget
-    function watchForIframe() {
+    function watchIframeSrc(iframe, label) {
+      log('[' + label + '] id=' + (iframe.id||'none') + ' src=' + (iframe.src||'blank'));
+
+      // If src is already set and valid, use it
+      if (iframe.src && iframe.src !== 'about:blank' && iframe.src !== '') {
+        // Skip the bubble iframe (small fixed position ones)
+        if (isChatIframe(iframe)) {
+          showChat(iframe.src);
+        } else {
+          log('[' + label + '] Skipping bubble iframe');
+          iframe.style.cssText = 'display:none!important;';
+        }
+        return;
+      }
+
+      // Watch for src to be set via attribute mutation
+      var attrObserver = new MutationObserver(function(mutations) {
+        for (var m = 0; m < mutations.length; m++) {
+          if (mutations[m].attributeName === 'src') {
+            var newSrc = iframe.src;
+            log('[' + label + '] src changed to: ' + newSrc);
+            if (newSrc && newSrc !== 'about:blank') {
+              attrObserver.disconnect();
+              if (isChatIframe(iframe)) {
+                showChat(newSrc);
+              } else {
+                log('[' + label + '] Skipping bubble iframe after src set');
+                iframe.style.cssText = 'display:none!important;';
+              }
+            }
+          }
+        }
+      });
+      attrObserver.observe(iframe, { attributes: true });
+
+      // Also poll as fallback
+      var poll = setInterval(function() {
+        if (iframe.src && iframe.src !== 'about:blank') {
+          clearInterval(poll);
+          attrObserver.disconnect();
+          log('[' + label + '] Polled src: ' + iframe.src);
+          if (isChatIframe(iframe)) {
+            showChat(iframe.src);
+          } else {
+            log('[' + label + '] Skipping bubble iframe (poll)');
+            iframe.style.cssText = 'display:none!important;';
+          }
+        }
+      }, 100);
+
+      // Give up after 10s
+      setTimeout(function() {
+        clearInterval(poll);
+        attrObserver.disconnect();
+        log('[' + label + '] Gave up waiting for src');
+      }, 10000);
+    }
+
+    // Determine if this is the real chat iframe vs the bubble launcher
+    function isChatIframe(iframe) {
+      var src = iframe.src || '';
+      var id  = iframe.id  || '';
+      // Exclude the TLS alert fallback iframe
+      if (id === 'tls_al_frm') return false;
+      // The chat iframe will have a token or widget path in the src
+      if (src.indexOf('token') > -1)  return true;
+      if (src.indexOf('widget') > -1) return true;
+      if (src.indexOf('chat') > -1)   return true;
+      // If src is blank, watch it — could be either
+      if (!src || src === 'about:blank') return true;
+      return false;
+    }
+
+    var iframeCount = 0;
+    function watchForIframes() {
       var observer = new MutationObserver(function(mutations) {
         for (var m = 0; m < mutations.length; m++) {
           var nodes = mutations[m].addedNodes;
           for (var n = 0; n < nodes.length; n++) {
             var node = nodes[n];
             if (node.tagName === 'IFRAME' && node.id !== 'fullscreen-chat') {
-              handleIframe(node); observer.disconnect(); return;
+              iframeCount++;
+              watchIframeSrc(node, 'iframe-' + iframeCount);
             }
             if (node.querySelectorAll) {
               var frames = node.querySelectorAll('iframe:not(#fullscreen-chat)');
-              if (frames.length > 0) { handleIframe(frames[0]); observer.disconnect(); return; }
+              frames.forEach(function(f) {
+                iframeCount++;
+                watchIframeSrc(f, 'iframe-' + iframeCount);
+              });
             }
           }
         }
       });
       observer.observe(document.body, { childList: true, subtree: true });
-
-      // Polling fallback
-      var poll = setInterval(function() {
-        var frames = document.querySelectorAll('iframe:not(#fullscreen-chat)');
-        if (frames.length > 0) { clearInterval(poll); observer.disconnect(); handleIframe(frames[0]); }
-      }, 300);
-    }
-
-    function handleIframe(iframe) {
-      log('Widget iframe detected, hiding bubble');
-      iframe.style.cssText = 'display:none!important;';
-      var src = iframe.src;
-      if (src && src !== 'about:blank') {
-        log('iframe src: ' + src);
-        showChat(src);
-      } else {
-        var w = setInterval(function() {
-          if (iframe.src && iframe.src !== 'about:blank') {
-            clearInterval(w);
-            log('Deferred iframe src: ' + iframe.src);
-            showChat(iframe.src);
-          }
-        }, 100);
-      }
     }
 
     async function init() {
+      chatLaunched = false;
+      iframeCount  = 0;
       document.getElementById('error-screen').style.display = 'none';
       document.getElementById('loading-screen').style.display = 'flex';
       document.getElementById('fullscreen-chat').style.display = 'none';
       setStatus('Connecting to chat...', 'Please wait a moment');
 
       var basicAuth = btoa(CLIENT_ID + ':' + CLIENT_SECRET);
-      log('Requesting OAuth token with correct client_id...');
+      log('Requesting OAuth token...');
 
       try {
         var resp = await fetch(TOKEN_URL, {
@@ -185,52 +240,40 @@
             'client_host': CLIENT_HOST,
             'accept': '*/*'
           }
-          // No body — content-length: 0 like the working request
         });
 
         log('Token response: ' + resp.status);
 
         if (resp.ok) {
           var data = await resp.json();
-          log('Token keys: ' + JSON.stringify(Object.keys(data)));
-          var token = data.access_token || data.token || data.id_token;
-          log('Got token: ' + (token ? token.substr(0,20) + '...' : 'none'));
-          setStatus('Loading chat...', 'Almost there');
-          // Now start the widget loader — it should succeed with correct credentials
-          watchForIframe();
-          loadWidgetScript();
+          log('Token: ' + (data.access_token || '').substr(0,20) + '...');
         } else {
-          var err = await resp.text();
-          log('Token error: ' + err);
-          // Fall back to widget loader anyway — it does its own retry logic
-          log('Falling back to widget loader...');
-          watchForIframe();
-          loadWidgetScript();
+          log('Token error: ' + await resp.text());
         }
 
       } catch(err) {
-        log('Fetch error: ' + err.message + ' — trying widget loader');
-        watchForIframe();
-        loadWidgetScript();
+        log('Token fetch error: ' + err.message);
       }
+
+      // Start watching for iframes before loading the script
+      watchForIframes();
+      loadWidgetScript();
     }
 
     function loadWidgetScript() {
       setStatus('Loading chat...', 'Starting widget');
       var e = document.getElementById('divicw');
+      // Remove any previously injected script
+      var old = document.getElementById('imi-script');
+      if (old) old.remove();
       var s = document.createElement('script');
+      s.id  = 'imi-script';
       s.src = 'https://media.imi.chat/widget/js/imichatinit.js?t=' + new Date().toISOString();
       e.insertAdjacentElement('afterend', s);
-      s.addEventListener('load', function() {
-        log('imichatinit.js loaded successfully');
-      });
-      s.addEventListener('error', function() {
-        log('imichatinit.js failed to load');
-        showError('Unable to load chat widget. Please try again.');
-      });
+      s.addEventListener('load',  function() { log('imichatinit.js loaded'); });
+      s.addEventListener('error', function() { log('imichatinit.js failed'); showError('Unable to load chat widget.'); });
     }
 
-    // Press D to toggle debug log
     document.addEventListener('keydown', function(e) {
       if (e.key === 'd' || e.key === 'D') {
         var el = document.getElementById('debug-log');
