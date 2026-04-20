@@ -480,6 +480,18 @@
                         </div>
                     </label>
 
+                    <label class="radio-option" data-value="webchat" onclick="selectOption(this)">
+                        <div class="radio-custom"><div class="radio-dot"></div></div>
+                        <div class="radio-icon">💻</div>
+                        <div class="radio-content">
+                            <div class="radio-label">
+                                Web Chat
+                                <span class="ewt-badge ewt-loading" id="ewtWebChat">Loading...</span>
+                            </div>
+                            <div class="radio-sub">Chat via browser</div>
+                        </div>
+                    </label>
+
                     <label class="radio-option" data-value="appleBusiness" onclick="selectOption(this)">
                         <div class="radio-custom"><div class="radio-dot"></div></div>
                         <div class="radio-icon">💼</div>
@@ -526,6 +538,7 @@
                 phone: 'd60c2ae4-9196-442c-860e-c132a1dbe1c3',
                 video: 'd1fa6df6-a8f6-4a0e-bf3a-fd9e9a623b4a',
                 text: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b',
+                webchat: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b',  // Add your webchat queue ID
                 appleBusiness: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b'
             }
         };
@@ -589,10 +602,11 @@
         }
 
         async function updateAllEWT() {
-            const [phoneEWT, videoEWT, textEWT, appleEWT] = await Promise.all([
+            const [phoneEWT, videoEWT, textEWT, webchatEWT, appleEWT] = await Promise.all([
                 fetchEWT(API_CONFIG.queueIds.phone),
                 fetchEWT(API_CONFIG.queueIds.video),
                 fetchEWT(API_CONFIG.queueIds.text),
+                fetchEWT(API_CONFIG.queueIds.webchat),
                 fetchEWT(API_CONFIG.queueIds.appleBusiness)
             ]);
 
@@ -601,6 +615,7 @@
             updateEWTBadge('ewtTalkNow', phoneEWT);
             updateEWTBadge('ewtVideo', videoEWT);
             updateEWTBadge('ewtText', textEWT);
+            updateEWTBadge('ewtWebChat', webchatEWT);
             updateEWTBadge('ewtApple', appleEWT);
 
             // All options are now always enabled
@@ -625,7 +640,7 @@
             const phoneInput = document.getElementById('phoneNumber');
 
             // Show phone number field for callme, talknow, and text
-            if (selectedMethod === 'callme'  || selectedMethod === 'text') {
+            if (selectedMethod === 'callme' || selectedMethod === 'talknow' || selectedMethod === 'text') {
                 phoneField.style.display = 'flex';
                 phoneInput.required = true;
             } else {
@@ -678,7 +693,6 @@
                 
                 const targetUrl = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/index-audio.html?' + params.toString();
                 window.location.href = targetUrl;
-                  console.error('Should open the URL:', targetUrl);
                 return;
             }
 
@@ -690,7 +704,19 @@
                 
                 const targetUrl = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/?' + params.toString();
                 window.location.href = targetUrl;
-                console.error('Should open the URL:', targetUrl);
+                return;
+            }
+
+            // Handle Web Chat - redirect to chat form
+            if (selectedMethod === 'webchat') {
+                const params = new URLSearchParams();
+                params.set('name', `${finalDestination} - ${lastName}`);
+                params.set('destination', finalDestination);
+                params.set('helpCategory', helpCategory);
+                params.set('dateOfBirth', dateOfBirth);
+                
+                const targetUrl = 'https://ciscoacdave.github.io/travel-form-html/chatform.html?' + params.toString();
+                window.location.href = targetUrl;
                 return;
             }
 
