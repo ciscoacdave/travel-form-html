@@ -127,22 +127,26 @@
         frame.contentWindow.postMessage({ action: 'open', type: 'open' }, '*');
       } catch(e) {}
 
-      // Poll for chat window after click
+      // Poll for chat window becoming visible after click
       var attempts = 0;
       var poll = setInterval(function() {
         attempts++;
         var chatFrame = document.getElementById('iframechatwindow');
-        if (chatFrame && chatFrame.src && chatFrame.src !== 'about:blank') {
-          clearInterval(poll);
-          log('Chat window found after click: ' + chatFrame.src.substr(0, 60));
-          expandChatWindow(chatFrame);
+        if (chatFrame) {
+          var style = window.getComputedStyle(chatFrame);
+          var isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+          log('Poll ' + attempts + ': chatFrame display=' + style.display + ' visibility=' + style.visibility);
+          if (isVisible) {
+            clearInterval(poll);
+            log('Chat window is now visible, expanding');
+            expandChatWindow(chatFrame);
+          }
         }
         if (attempts > 40) {
           clearInterval(poll);
-          log('Timed out waiting for chat window after click');
-          // Show whatever is there
-          var anyFrame = document.getElementById('iframechatwindow');
-          if (anyFrame) expandChatWindow(anyFrame);
+          log('Timed out — forcing expand anyway');
+          var f = document.getElementById('iframechatwindow');
+          if (f) expandChatWindow(f);
         }
       }, 250);
     }
@@ -167,19 +171,10 @@
       }
 
       if (id === 'iframechatwindow') {
-        // May appear before or after click — handle both
-        if (frame.src && frame.src !== 'about:blank') {
-          expandChatWindow(frame);
-        } else {
-          // Wait for src
-          var w = setInterval(function() {
-            if (frame.src && frame.src !== 'about:blank') {
-              clearInterval(w);
-              expandChatWindow(frame);
-            }
-          }, 100);
-          setTimeout(function() { clearInterval(w); }, 10000);
-        }
+        // Don't expand immediately — wait until after bubble is clicked
+        // The widget pre-creates this iframe before the chat is opened
+        // We poll for it in clickBubble() after the click happens
+        log('iframechatwindow appeared — waiting for bubble click before expanding');
       }
     }
 
