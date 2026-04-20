@@ -111,15 +111,10 @@
     function showChat(url) {
       if (chatLaunched) { log('showChat called again, ignoring: ' + url); return; }
       chatLaunched = true;
-      log('Launching fullscreen chat: ' + url);
-      var frame = document.getElementById('fullscreen-chat');
-      frame.src = url;
-      frame.style.display = 'block';
-      frame.addEventListener('load', function() {
-        var ls = document.getElementById('loading-screen');
-        ls.classList.add('fade-out');
-        setTimeout(function() { ls.style.display = 'none'; }, 400);
-      });
+      log('Redirecting to chat: ' + url);
+      // Redirect the whole page rather than embedding in an iframe
+      // This avoids the document.domain cross-origin blocking issue
+      window.location.href = url;
     }
 
     function watchIframeSrc(iframe, label) {
