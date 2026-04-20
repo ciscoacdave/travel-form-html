@@ -13,9 +13,8 @@
       position: fixed; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       background: #f0f4f8; z-index: 99990; transition: opacity 0.4s ease;
-      pointer-events: none; /* let clicks pass through to the widget */
     }
-    #loading-screen.fade-out { opacity: 0; }
+    #loading-screen.fade-out { opacity: 0; pointer-events: none; }
     #loading-screen.gone { display: none; }
 
     .spinner {
@@ -27,26 +26,6 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 0.95rem; color: #56627c; font-weight: 500; }
     .loading-sub  { font-size: 0.8rem; color: #99a0b0; margin-top: 0.4rem; }
-
-    /* Force the chat window iframe to fill the screen */
-    #iframechatwindow {
-      position: fixed !important;
-      inset: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      max-width: 100% !important;
-      max-height: 100% !important;
-      border-radius: 0 !important;
-      z-index: 99995 !important;
-    }
-
-    /* Hide the bubble button and unread badge */
-    #imi-chatbutton,
-    #chatunread-frame,
-    #imichat-fullscreen-modal {
-      display: none !important;
-      visibility: hidden !important;
-    }
 
     #debug-log {
       position: fixed; bottom: 0; left: 0; right: 0;
@@ -67,7 +46,6 @@
 
   <div id="debug-log"></div>
 
-  <!-- imi.chat anchor -->
   <div id="divicw"
     data-bind="62A7138C-F6AA-4B69-8FC5-317D0E8AEB8F"
     data-org=""
@@ -80,6 +58,8 @@
     var TOKEN_URL     = 'https://chat-widget.imi.chat/oauth/token';
     var CLIENT_HOST   = window.location.hostname;
     var bubbleClicked = false;
+    var chatExpanded  = false;
+    var seenIds       = {};
 
     function log(msg) {
       var el = document.getElementById('debug-log');
@@ -101,131 +81,125 @@
       setTimeout(function() { ls.classList.add('gone'); }, 400);
     }
 
-    // Try to click the chat bubble button
-    function clickBubble() {
-      if (bubbleClicked) return;
-
-      // Try the known bubble iframe id
-      var bubbleFrame = document.getElementById('imi-chatbutton');
-      if (bubbleFrame) {
-        log('Found bubble iframe, attempting click');
-        try {
-          var btn = bubbleFrame.contentDocument
-                 && bubbleFrame.contentDocument.querySelector('button, [role="button"], div[onclick], #chatBtn, .chat-btn');
-          if (btn) {
-            log('Clicking button inside bubble iframe');
-            btn.click();
-            bubbleClicked = true;
-            return;
-          }
-        } catch(e) {
-          log('Cannot access bubble iframe content (cross-origin): ' + e.message);
-        }
-
-        // Cross-origin — simulate a click on the iframe element itself
-        log('Simulating click on bubble iframe element');
-        var rect = bubbleFrame.getBoundingClientRect();
-        var cx = rect.left + rect.width / 2;
-        var cy = rect.top + rect.height / 2;
-        ['mousedown','mouseup','click'].forEach(function(type) {
-          bubbleFrame.dispatchEvent(new MouseEvent(type, {
-            bubbles: true, cancelable: true, clientX: cx, clientY: cy
-          }));
-        });
-        bubbleClicked = true;
-        return;
-      }
-
-      // Try any element with imi in id/class
-      var candidates = document.querySelectorAll('[id*="imi"], [class*="imi"], [id*="chat-btn"], [id*="chatBtn"]');
-      for (var i = 0; i < candidates.length; i++) {
-        var el = candidates[i];
-        if (el.id !== 'divicw' && el.id !== 'debug-log') {
-          log('Clicking candidate: ' + el.id + ' / ' + el.className);
-          el.click();
-          bubbleClicked = true;
-          return;
-        }
-      }
-
-      log('Bubble not found yet, retrying...');
+    function expandChatWindow(frame) {
+      if (chatExpanded) return;
+      chatExpanded = true;
+      log('Expanding chat window fullscreen');
+      frame.style.position   = 'fixed';
+      frame.style.top        = '0';
+      frame.style.left       = '0';
+      frame.style.width      = '100%';
+      frame.style.height     = '100%';
+      frame.style.maxWidth   = '100%';
+      frame.style.maxHeight  = '100%';
+      frame.style.borderRadius = '0';
+      frame.style.border     = 'none';
+      frame.style.zIndex     = '99995';
+      frame.style.display    = 'block';
+      hideLoader();
     }
 
-    // Watch for the chat window iframe to appear and go fullscreen
-    function watchForChatWindow() {
+    function clickBubble() {
+      if (bubbleClicked) return;
+      bubbleClicked = true;
+      log('Clicking bubble iframe...');
+
+      var frame = document.getElementById('imi-chatbutton');
+      if (!frame) { log('Bubble frame not found'); return; }
+
+      // Try clicking center of the iframe element
+      var rect = frame.getBoundingClientRect();
+      var cx = rect.left + rect.width / 2;
+      var cy = rect.top  + rect.height / 2;
+      log('Bubble rect: ' + JSON.stringify({x: Math.round(cx), y: Math.round(cy), w: Math.round(rect.width), h: Math.round(rect.height)}));
+
+      var el = document.elementFromPoint(cx, cy) || frame;
+      ['mousedown', 'mouseup', 'click'].forEach(function(type) {
+        el.dispatchEvent(new MouseEvent(type, {
+          bubbles: true, cancelable: true,
+          clientX: cx, clientY: cy,
+          view: window
+        }));
+      });
+
+      // Also try postMessage to the bubble iframe
+      try {
+        frame.contentWindow.postMessage({ action: 'open', type: 'open' }, '*');
+      } catch(e) {}
+
+      // Poll for chat window after click
+      var attempts = 0;
+      var poll = setInterval(function() {
+        attempts++;
+        var chatFrame = document.getElementById('iframechatwindow');
+        if (chatFrame && chatFrame.src && chatFrame.src !== 'about:blank') {
+          clearInterval(poll);
+          log('Chat window found after click: ' + chatFrame.src.substr(0, 60));
+          expandChatWindow(chatFrame);
+        }
+        if (attempts > 40) {
+          clearInterval(poll);
+          log('Timed out waiting for chat window after click');
+          // Show whatever is there
+          var anyFrame = document.getElementById('iframechatwindow');
+          if (anyFrame) expandChatWindow(anyFrame);
+        }
+      }, 250);
+    }
+
+    function handleNewIframe(frame) {
+      var id = frame.id || '';
+      if (seenIds[id]) return;
+      seenIds[id] = true;
+      log('New iframe: id=' + (id||'none'));
+
+      if (id === 'imi-chatbutton') {
+        // Hide it visually but keep it in DOM so widget logic still works
+        frame.style.opacity = '0';
+        frame.style.pointerEvents = 'none';
+        // Wait for widget to fully initialize then click
+        setTimeout(clickBubble, 1500);
+        setStatus('Starting chat...', 'Almost ready');
+      }
+
+      if (id === 'chatunread-frame') {
+        frame.style.display = 'none';
+      }
+
+      if (id === 'iframechatwindow') {
+        // May appear before or after click — handle both
+        if (frame.src && frame.src !== 'about:blank') {
+          expandChatWindow(frame);
+        } else {
+          // Wait for src
+          var w = setInterval(function() {
+            if (frame.src && frame.src !== 'about:blank') {
+              clearInterval(w);
+              expandChatWindow(frame);
+            }
+          }, 100);
+          setTimeout(function() { clearInterval(w); }, 10000);
+        }
+      }
+    }
+
+    function watchForIframes() {
+      // Only watch childList — no attribute watching to avoid feedback loops
       var observer = new MutationObserver(function(mutations) {
         for (var m = 0; m < mutations.length; m++) {
-          var nodes = mutations[m].addedNodes;
-          for (var n = 0; n < nodes.length; n++) {
-            var node = nodes[n];
-            checkNode(node);
-            if (node.querySelectorAll) {
-              node.querySelectorAll('iframe').forEach(checkNode);
+          var added = mutations[m].addedNodes;
+          for (var n = 0; n < added.length; n++) {
+            var node = added[n];
+            if (node.tagName === 'IFRAME') {
+              handleNewIframe(node);
             }
-          }
-          // Also watch for style/attribute changes on existing iframes
-          if (mutations[m].type === 'attributes') {
-            checkNode(mutations[m].target);
+            if (node.querySelectorAll) {
+              node.querySelectorAll('iframe').forEach(handleNewIframe);
+            }
           }
         }
       });
-      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
-    }
-
-    function checkNode(node) {
-      if (!node || node.tagName !== 'IFRAME') return;
-      var id = node.id || '';
-
-      // Hide bubble and unread badge
-      if (id === 'imi-chatbutton' || id === 'chatunread-frame' || id === 'imichat-fullscreen-modal') {
-        node.style.cssText = 'display:none!important;visibility:hidden!important;';
-
-        // Once bubble is ready, click it after a short delay
-        if (id === 'imi-chatbutton' && !bubbleClicked) {
-          log('Bubble iframe appeared, scheduling click...');
-          setStatus('Starting chat...', 'Almost ready');
-          setTimeout(function() {
-            clickBubble();
-            // Poll for chat window after click
-            var attempts = 0;
-            var poll = setInterval(function() {
-              attempts++;
-              var chatFrame = document.getElementById('iframechatwindow');
-              if (chatFrame) {
-                clearInterval(poll);
-                log('Chat window appeared after click');
-                expandChatWindow(chatFrame);
-              }
-              if (attempts > 30) { clearInterval(poll); log('Gave up waiting for chat window'); }
-            }, 300);
-          }, 1500);
-        }
-        return;
-      }
-
-      // The main chat window
-      if (id === 'iframechatwindow') {
-        log('iframechatwindow detected');
-        expandChatWindow(node);
-      }
-    }
-
-    function expandChatWindow(frame) {
-      log('Expanding chat window to fullscreen');
-      frame.style.cssText = [
-        'position:fixed!important',
-        'top:0!important',
-        'left:0!important',
-        'width:100%!important',
-        'height:100%!important',
-        'max-width:100%!important',
-        'max-height:100%!important',
-        'border-radius:0!important',
-        'border:none!important',
-        'z-index:99995!important',
-        'display:block!important'
-      ].join(';');
-      hideLoader();
+      observer.observe(document.body, { childList: true, subtree: true });
     }
 
     async function init() {
@@ -244,17 +218,19 @@
             'accept': '*/*'
           }
         });
-        log('Token: ' + resp.status);
+        log('Token response: ' + resp.status);
         if (resp.ok) {
           var data = await resp.json();
-          log('Got token: ' + (data.access_token||'').substr(0,20) + '...');
+          log('Got token: ' + (data.access_token || '').substr(0, 20) + '...');
+        } else {
+          log('Token error: ' + await resp.text());
         }
       } catch(e) {
-        log('Token fetch: ' + e.message);
+        log('Token fetch error: ' + e.message);
       }
 
       setStatus('Loading chat...', 'Starting widget');
-      watchForChatWindow();
+      watchForIframes();
       loadWidgetScript();
     }
 
@@ -267,7 +243,7 @@
       s.src = 'https://media.imi.chat/widget/js/imichatinit.js?t=' + new Date().toISOString();
       e.insertAdjacentElement('afterend', s);
       s.addEventListener('load',  function() { log('imichatinit.js loaded'); });
-      s.addEventListener('error', function() { log('imichatinit.js failed'); });
+      s.addEventListener('error', function() { log('imichatinit.js failed to load'); });
     }
 
     document.addEventListener('keydown', function(e) {
