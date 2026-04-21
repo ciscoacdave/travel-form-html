@@ -214,7 +214,7 @@
 
         .radio-option {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 12px;
             padding: 12px 14px;
             background: white;
@@ -250,6 +250,7 @@
             justify-content: center;
             flex-shrink: 0;
             transition: border-color 0.2s;
+            margin-top: 7px;
         }
 
         .radio-option.selected .radio-custom {
@@ -282,6 +283,7 @@
             flex-shrink: 0;
             font-size: 18px;
             color: white;
+            margin-top: 3px;
         }
 
         .radio-option:not(.selected) .radio-icon {
@@ -334,6 +336,104 @@
         .ewt-high {
             background: #f8d7da;
             color: #721c24;
+        }
+
+        /* Language support tooltip */
+        .language-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--navy-mid);
+            cursor: default;
+            position: relative;
+            width: fit-content;
+        }
+
+        .language-hint-icon {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: var(--navy-mid);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .language-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            background: var(--navy);
+            color: white;
+            font-size: 11px;
+            line-height: 1.6;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            width: 240px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .language-tooltip.tooltip-lg {
+            width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            pointer-events: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.3) transparent;
+        }
+
+        .language-tooltip.tooltip-lg::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .language-tooltip.tooltip-lg::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+
+        .language-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 14px;
+            border: 5px solid transparent;
+            border-top-color: var(--navy);
+        }
+
+        .language-tooltip strong {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #c8d8ff;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .language-tooltip .lang-group {
+            margin-bottom: 6px;
+        }
+
+        .language-tooltip .lang-group-label {
+            color: #c8d8ff;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .language-hint:hover .language-tooltip {
+            display: block;
         }
 
         /* Phone number field (hidden by default) */
@@ -441,6 +541,14 @@
                                 <span class="ewt-badge ewt-loading" id="ewtCallMe">Loading...</span>
                             </div>
                             <div class="radio-sub">We'll call you back</div>
+                            <div class="language-hint">
+                                <span class="language-hint-icon">i</span>
+                                Available in 35 languages
+                                <div class="language-tooltip">
+                                    <strong>Supported languages</strong>
+                                    Arabic, Armenian, Bengali, Cantonese, Catalan, Chinese (Mandarin), Dutch, English, Finnish, French, German, Greek, Gujarati, Hindi, Indonesian, Italian, Japanese, Kannada, Korean, Malay, Malayalam, Marathi, Nepali, Persian, Portuguese, Romanian, Russian, Slovak, Spanish, Swahili, Tamil, Telugu, Thai, Turkish, Ukrainian, Urdu
+                                </div>
+                            </div>
                         </div>
                     </label>
 
@@ -489,6 +597,37 @@
                                 <span class="ewt-badge ewt-loading" id="ewtWebChat">Loading...</span>
                             </div>
                             <div class="radio-sub">Chat via browser</div>
+                            <div class="language-hint">
+                                <span class="language-hint-icon">i</span>
+                                Available in 100+ languages
+                                <div class="language-tooltip tooltip-lg">
+                                    <strong>Supported languages</strong>
+                                    <div class="lang-group">
+                                        <span class="lang-group-label">A – C</span>
+                                        Afrikaans, Albanian, Amharic, Armenian, Assamese, Azerbaijani, Basque, Belarusian, Bosnian, Bulgarian, Burmese, Catalan, Cebuano, Chichewa, Croatian, Czech
+                                    </div>
+                                    <div class="lang-group">
+                                        <span class="lang-group-label">D – G</span>
+                                        Danish, Dutch, Esperanto, Estonian, Filipino, Finnish, Frisian, Galician, Georgian, Greek, Gujarati
+                                    </div>
+                                    <div class="lang-group">
+                                        <span class="lang-group-label">H – L</span>
+                                        Haitian Creole, Hausa, Hawaiian, Hebrew, Hmong, Hungarian, Icelandic, Igbo, Indonesian, Irish, Javanese, Kannada, Kazakh, Khmer, Kinyarwanda, Kurdish, Kyrgyz, Lao, Latin, Latvian, Lithuanian, Luxembourgish
+                                    </div>
+                                    <div class="lang-group">
+                                        <span class="lang-group-label">M – P</span>
+                                        Macedonian, Malagasy, Malay, Malayalam, Maltese, Maori, Marathi, Mongolian, Nepali, Norwegian, Odia, Pashto, Persian, Polish, Punjabi
+                                    </div>
+                                    <div class="lang-group">
+                                        <span class="lang-group-label">Q – T</span>
+                                        Quechua, Romanian, Samoan, Scots Gaelic, Serbian, Sesotho, Shona, Sindhi, Sinhala, Slovak, Slovenian, Somali, Sundanese, Swahili, Swedish, Tajik, Tamil, Tatar, Telugu, Thai, Turkish, Turkmen
+                                    </div>
+                                    <div class="lang-group">
+                                        <span class="lang-group-label">U – Z</span>
+                                        Ukrainian, Urdu, Uyghur, Uzbek, Vietnamese, Welsh, Xhosa, Yiddish, Yoruba, Zulu
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </label>
 
@@ -532,13 +671,13 @@
         // ===== CONFIGURATION =====
         const API_CONFIG = {
             baseUrl: 'https://api.wxcc-us1.cisco.com/v1',
-            accessToken: 'NDQzZTg1YTctYjQ4YS00ZTJjLTk0NzgtNzM2MGM1YWMzYjU1OWU3ZmVkOWEtZWEy_PF84_000a1aaf-cc6f-4481-9e9a-660ad7f4b9d0',
+            accessToken: 'OWQ0MzQwYTUtZGRjYy00NmI5LTllOTktNzNjZGVlNjhkYmVjNDJhMGRlNmQtYmI0_PF84_000a1aaf-cc6f-4481-9e9a-660ad7f4b9d0',
             orgId: '000a1aaf-cc6f-4481-9e9a-660ad7f4b9d0',
             queueIds: {
                 phone: 'd60c2ae4-9196-442c-860e-c132a1dbe1c3',
                 video: 'd1fa6df6-a8f6-4a0e-bf3a-fd9e9a623b4a',
                 text: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b',
-                webchat: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b',  // Add your webchat queue ID
+                webchat: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b',
                 appleBusiness: '2668c442-9a18-4ca6-bd4b-c4e2cffa186b'
             }
         };
@@ -610,15 +749,12 @@
                 fetchEWT(API_CONFIG.queueIds.appleBusiness)
             ]);
 
-            // Both Call Me and Talk Now use the same phone queue EWT
             updateEWTBadge('ewtCallMe', phoneEWT);
             updateEWTBadge('ewtTalkNow', phoneEWT);
             updateEWTBadge('ewtVideo', videoEWT);
             updateEWTBadge('ewtText', textEWT);
             updateEWTBadge('ewtWebChat', webchatEWT);
             updateEWTBadge('ewtApple', appleEWT);
-
-            // All options are now always enabled
         }
 
         // Initialize EWT on page load
@@ -639,7 +775,6 @@
             const phoneField = document.getElementById('phoneNumberField');
             const phoneInput = document.getElementById('phoneNumber');
 
-            // Show phone number field for callme, talknow, and text
             if (selectedMethod === 'callme' || selectedMethod === 'talknow' || selectedMethod === 'text') {
                 phoneField.style.display = 'flex';
                 phoneInput.required = true;
@@ -665,13 +800,11 @@
             const dateOfBirth = document.getElementById('dateOfBirth').value;
             const phoneNumber = document.getElementById('phoneNumber').value.trim();
 
-            // Validation
             if (!finalDestination || !lastName || !helpCategory || !dateOfBirth || !selectedMethod) {
                 alert('Agent on Demand says: Please fill in all fields and select a contact method.');
                 return;
             }
 
-            // Phone number validation for callme, talknow, and text
             if ((selectedMethod === 'callme' || selectedMethod === 'talknow' || selectedMethod === 'text') && !phoneNumber) {
                 alert('Agent on Demand says: Please enter a phone number for phone or text contact.');
                 return;
@@ -684,39 +817,33 @@
                 }
             }
 
-            // Handle Talk Now - redirect to audio chat
+            // Handle Talk Now
             if (selectedMethod === 'talknow') {
                 const params = new URLSearchParams();
                 params.set('name', `${finalDestination} - ${lastName}`);
                 params.set('destination', finalDestination);
                 params.set('phone', phoneNumber);
-                
-                const targetUrl = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/index-audio.html?' + params.toString();
-                window.location.href = targetUrl;
+                window.location.href = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/index-audio.html?' + params.toString();
                 return;
             }
 
-            // Handle Video - redirect to video chat
+            // Handle Video
             if (selectedMethod === 'video') {
                 const params = new URLSearchParams();
                 params.set('name', `${finalDestination} - ${lastName}`);
                 params.set('destination', finalDestination);
-                
-                const targetUrl = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/?' + params.toString();
-                window.location.href = targetUrl;
+                window.location.href = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/?' + params.toString();
                 return;
             }
 
-            // Handle Web Chat - redirect to chat form
+            // Handle Web Chat
             if (selectedMethod === 'webchat') {
                 const params = new URLSearchParams();
                 params.set('name', `${finalDestination} - ${lastName}`);
                 params.set('destination', finalDestination);
                 params.set('helpCategory', helpCategory);
                 params.set('dateOfBirth', dateOfBirth);
-                
-                const targetUrl = 'https://ciscoacdave.github.io/travel-form-html/chatform.html?' + params.toString();
-                window.location.href = targetUrl;
+                window.location.href = 'https://ciscoacdave.github.io/travel-form-html/chatform.html?' + params.toString();
                 return;
             }
 
@@ -739,7 +866,6 @@
                     window.open(messagesUrl, '_blank');
                     alert('Agent on Demand says: Opening Apple Messages for Business...');
 
-                    // Reset form
                     document.getElementById('finalDestination').value = '';
                     document.getElementById('lastName').value = '';
                     document.getElementById('helpCategory').value = '';
@@ -756,22 +882,21 @@
                 }
             }
 
-            // Handle webhook submission for callme and text only
+            // Handle webhook submission for callme and text
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
 
             try {
                 const webhookData = {
-                    finalDestination: finalDestination,
-                    lastName: lastName,
-                    helpCategory: helpCategory,
-                    dateOfBirth: dateOfBirth,
+                    finalDestination,
+                    lastName,
+                    helpCategory,
+                    dateOfBirth,
                     contactMethod: selectedMethod,
                     timestamp: new Date().toISOString()
                 };
 
-                // Include phone number for callme and text
                 if (selectedMethod === 'callme' || selectedMethod === 'text') {
                     webhookData.phoneNumber = phoneNumber;
                 }
@@ -784,8 +909,6 @@
 
                 if (response.ok) {
                     alert('Agent on Demand says: Form submitted successfully!');
-                    
-                    // Reset form
                     document.getElementById('finalDestination').value = '';
                     document.getElementById('lastName').value = '';
                     document.getElementById('helpCategory').value = '';
