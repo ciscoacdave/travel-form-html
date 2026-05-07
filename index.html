@@ -515,6 +515,7 @@
                         <option value="changeFlight">Change my flight</option>
                         <option value="changeSeat">Change my seat</option>
                         <option value="Baggage">Baggage Issues</option>
+                        <option value="futureFlight">Future Flight Reservation</option>
                         <option value="somethingElse">Something Else</option>
                     </select>
                     <span class="select-arrow">⌄</span>
@@ -823,6 +824,7 @@
                 params.set('name', `${finalDestination} - ${lastName}`);
                 params.set('destination', finalDestination);
                 params.set('phone', phoneNumber);
+                params.set('Q2Q', helpCategory === 'futureFlight' ? 'True' : 'False');
                 window.location.href = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/index-audio.html?' + params.toString();
                 return;
             }
@@ -832,6 +834,7 @@
                 const params = new URLSearchParams();
                 params.set('name', `${finalDestination} - ${lastName}`);
                 params.set('destination', finalDestination);
+                params.set('Q2Q', helpCategory === 'futureFlight' ? 'True' : 'False');
                 window.location.href = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/?' + params.toString();
                 return;
             }
