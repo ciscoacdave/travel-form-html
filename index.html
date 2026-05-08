@@ -822,7 +822,7 @@
             if (selectedMethod === 'talknow') {
                 const params = new URLSearchParams();
                 params.set('name', `${finalDestination} - ${lastName}`);
-                params.set('destination', finalDestination);
+                //params.set('destination', finalDestination);
                 params.set('phone', phoneNumber);
                 params.set('Q2Q', helpCategory === 'futureFlight' ? 'True' : 'False');
                 window.location.href = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/index-audio.html?' + params.toString();
@@ -833,7 +833,7 @@
             if (selectedMethod === 'video') {
                 const params = new URLSearchParams();
                 params.set('name', `${finalDestination} - ${lastName}`);
-                params.set('destination', finalDestination);
+                //params.set('destination', finalDestination);
                 params.set('Q2Q', helpCategory === 'futureFlight' ? 'True' : 'False');
                 window.location.href = 'https://wxsd-sales.github.io/wxcc-chat-and-more-customer/?' + params.toString();
                 return;
